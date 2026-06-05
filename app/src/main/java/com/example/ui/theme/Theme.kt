@@ -10,39 +10,39 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = SnsRedAccent,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    secondary = SnsOrange,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    tertiary = SnsSilverText,
-    background = SnsDarkBg,
-    onBackground = SnsSilverText,
-    surface = SnsCardBg,
-    onSurface = SnsSilverText,
-    outline = SnsBorder
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = SnsRedAccent,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    secondary = SnsOrange,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    tertiary = SnsSilverText,
-    background = SnsDarkBg,
-    onBackground = SnsSilverText,
-    surface = SnsCardBg,
-    onSurface = SnsSilverText,
-    outline = SnsBorder
-)
-
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = ThemeManager.isDark, // Reactive Theme switch
     dynamicColor: Boolean = false, // Use our professional custom colors
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = SnsRedAccent,
+            onPrimary = androidx.compose.ui.graphics.Color.White,
+            secondary = SnsOrange,
+            onSecondary = androidx.compose.ui.graphics.Color.White,
+            tertiary = SnsSilverText,
+            background = SnsDarkBg,
+            onBackground = SnsSilverText,
+            surface = SnsCardBg,
+            onSurface = SnsSilverText,
+            outline = SnsBorder
+        )
+    } else {
+        lightColorScheme(
+            primary = SnsRedAccent,
+            onPrimary = androidx.compose.ui.graphics.Color.White,
+            secondary = SnsOrange,
+            onSecondary = androidx.compose.ui.graphics.Color.White,
+            tertiary = SnsSilverText,
+            background = SnsDarkBg,
+            onBackground = SnsSilverText,
+            surface = SnsCardBg,
+            onSurface = SnsSilverText,
+            outline = SnsBorder
+        )
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,

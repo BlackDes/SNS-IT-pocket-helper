@@ -56,7 +56,15 @@ data class EquipmentItem(
     val serialNumber: String,
     val inventoryNumber: String,
     val purchaseDate: String, // dd.MM.yyyy
-    val assignee: String // Full Name of employee
+    val assignee: String, // Full Name of employee
+    val comment: String = "" // Optional comment
+)
+
+// Custom Positions List
+@Entity(tableName = "custom_positions")
+data class CustomPosition(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String
 )
 
 // Employee Contact Information Registry
@@ -65,7 +73,18 @@ data class Employee(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val fullName: String,
     val position: String,
-    val phoneNumber: String
+    val phoneNumber: String,
+    val secondPhoneNumber: String = "",
+    val socialMediaLabel: String? = null,
+    val socialMediaLink: String? = null
+)
+
+// Predefined Cartridge Types (with custom user addition support)
+@Entity(tableName = "cartridge_types")
+data class CartridgeType(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val description: String = ""
 )
 
 // Instructions / Notebook entries
@@ -91,6 +110,24 @@ data class TaskItem(
     val solution: String = ""
 )
 
+// Addresses Registry
+@Entity(tableName = "addresses")
+data class AddressItem(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val address: String
+)
+
+// Passwords Registry
+@Entity(tableName = "passwords")
+data class PasswordItem(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val login: String,
+    val password: String,
+    val comment: String? = null
+)
+
 
 // ==========================
 // 2. Data Access Objects (DAOs)
@@ -111,6 +148,9 @@ interface CartridgeDao {
     @Query("DELETE FROM new_cartridges WHERE id = :id")
     suspend fun deleteNewCartridgeById(id: Int)
 
+    @Query("DELETE FROM new_cartridges WHERE name = :name")
+    suspend fun deleteNewCartridgesByName(name: String)
+
     // Issuances
     @Query("SELECT * FROM cartridge_issuances ORDER BY id DESC")
     fun getAllIssuances(): Flow<List<CartridgeIssuance>>
@@ -124,6 +164,9 @@ interface CartridgeDao {
     @Query("DELETE FROM cartridge_issuances WHERE id = :id")
     suspend fun deleteIssuanceById(id: Int)
 
+    @Query("DELETE FROM cartridge_issuances WHERE cartridgeName = :cartridgeName")
+    suspend fun deleteIssuancesByCartridgeName(cartridgeName: String)
+
     // Used Cartridges
     @Query("SELECT * FROM used_cartridges ORDER BY id DESC")
     fun getAllUsedCartridges(): Flow<List<UsedCartridge>>
@@ -136,6 +179,19 @@ interface CartridgeDao {
 
     @Query("DELETE FROM used_cartridges WHERE id = :id")
     suspend fun deleteUsedCartridgeById(id: Int)
+
+    // Cartridge Types
+    @Query("SELECT * FROM cartridge_types ORDER BY name ASC")
+    fun getAllCartridgeTypes(): Flow<List<CartridgeType>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCartridgeType(type: CartridgeType)
+
+    @Update
+    suspend fun updateCartridgeType(type: CartridgeType)
+
+    @Query("DELETE FROM cartridge_types WHERE id = :id")
+    suspend fun deleteCartridgeTypeById(id: Int)
 }
 
 @Dao
@@ -166,6 +222,19 @@ interface CabinetDao {
     @Query("DELETE FROM employees WHERE id = :id")
     suspend fun deleteEmployeeById(id: Int)
 
+    // Custom Positions
+    @Query("SELECT * FROM custom_positions ORDER BY name ASC")
+    fun getAllCustomPositions(): Flow<List<CustomPosition>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCustomPosition(pos: CustomPosition)
+
+    @Update
+    suspend fun updateCustomPosition(pos: CustomPosition)
+
+    @Query("DELETE FROM custom_positions WHERE id = :id")
+    suspend fun deleteCustomPositionById(id: Int)
+
     // Instructions
     @Query("SELECT * FROM instructions ORDER BY id DESC")
     fun getAllInstructions(): Flow<List<InstructionNote>>
@@ -192,6 +261,32 @@ interface CabinetDao {
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteTaskById(id: Int)
 
+    // Addresses
+    @Query("SELECT * FROM addresses ORDER BY name ASC")
+    fun getAllAddresses(): Flow<List<AddressItem>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAddress(address: AddressItem)
+
+    @Update
+    suspend fun updateAddress(address: AddressItem)
+
+    @Query("DELETE FROM addresses WHERE id = :id")
+    suspend fun deleteAddressById(id: Int)
+
+    // Passwords
+    @Query("SELECT * FROM passwords ORDER BY name ASC")
+    fun getAllPasswords(): Flow<List<PasswordItem>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPassword(passwd: PasswordItem)
+
+    @Update
+    suspend fun updatePassword(passwd: PasswordItem)
+
+    @Query("DELETE FROM passwords WHERE id = :id")
+    suspend fun deletePasswordById(id: Int)
+
 }
 
 // ==========================
@@ -206,9 +301,13 @@ interface CabinetDao {
         EquipmentItem::class,
         Employee::class,
         InstructionNote::class,
-        TaskItem::class
+        TaskItem::class,
+        CartridgeType::class,
+        AddressItem::class,
+        PasswordItem::class,
+        CustomPosition::class
     ],
-    version = 1,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -247,10 +346,14 @@ class SnsRepository(private val db: AppDatabase) {
     val newCartridges: Flow<List<NewCartridge>> = cartridgeDao.getAllNewCartridges()
     val cartridgeIssuances: Flow<List<CartridgeIssuance>> = cartridgeDao.getAllIssuances()
     val usedCartridges: Flow<List<UsedCartridge>> = cartridgeDao.getAllUsedCartridges()
+    val cartridgeTypes: Flow<List<CartridgeType>> = cartridgeDao.getAllCartridgeTypes()
     val equipmentItems: Flow<List<EquipmentItem>> = cabinetDao.getAllEquipment()
     val employees: Flow<List<Employee>> = cabinetDao.getAllEmployees()
+    val customPositions: Flow<List<CustomPosition>> = cabinetDao.getAllCustomPositions()
     val instructions: Flow<List<InstructionNote>> = cabinetDao.getAllInstructions()
     val tasks: Flow<List<TaskItem>> = cabinetDao.getAllTasks()
+    val addresses: Flow<List<AddressItem>> = cabinetDao.getAllAddresses()
+    val passwords: Flow<List<PasswordItem>> = cabinetDao.getAllPasswords()
 
     // 4.1 New Cartridges Operations
     suspend fun addNewCartridge(cartridge: NewCartridge) {
@@ -261,6 +364,9 @@ class SnsRepository(private val db: AppDatabase) {
     }
     suspend fun deleteNewCartridge(id: Int) {
         cartridgeDao.deleteNewCartridgeById(id)
+    }
+    suspend fun deleteNewCartridgesByName(name: String) {
+        cartridgeDao.deleteNewCartridgesByName(name)
     }
 
     // 4.2 Issuances Operations
@@ -273,6 +379,9 @@ class SnsRepository(private val db: AppDatabase) {
     suspend fun deleteIssuance(id: Int) {
         cartridgeDao.deleteIssuanceById(id)
     }
+    suspend fun deleteIssuancesByCartridgeName(cartridgeName: String) {
+        cartridgeDao.deleteIssuancesByCartridgeName(cartridgeName)
+    }
 
     // 4.3 Used Cartridges Operations
     suspend fun addUsedCartridge(used: UsedCartridge) {
@@ -283,6 +392,17 @@ class SnsRepository(private val db: AppDatabase) {
     }
     suspend fun deleteUsedCartridge(id: Int) {
         cartridgeDao.deleteUsedCartridgeById(id)
+    }
+
+    // Cartridge Types Operations
+    suspend fun addCartridgeType(type: CartridgeType) {
+        cartridgeDao.insertCartridgeType(type)
+    }
+    suspend fun updateCartridgeType(type: CartridgeType) {
+        cartridgeDao.updateCartridgeType(type)
+    }
+    suspend fun deleteCartridgeType(id: Int) {
+        cartridgeDao.deleteCartridgeTypeById(id)
     }
 
     // 4.4 Equipment Operations
@@ -307,6 +427,17 @@ class SnsRepository(private val db: AppDatabase) {
         cabinetDao.deleteEmployeeById(id)
     }
 
+    // Custom Positions Operations
+    suspend fun addCustomPosition(pos: CustomPosition) {
+        cabinetDao.insertCustomPosition(pos)
+    }
+    suspend fun updateCustomPosition(pos: CustomPosition) {
+        cabinetDao.updateCustomPosition(pos)
+    }
+    suspend fun deleteCustomPosition(id: Int) {
+        cabinetDao.deleteCustomPositionById(id)
+    }
+
     // 4.6 Instruction Notes Operations
     suspend fun addInstruction(note: InstructionNote) {
         cabinetDao.insertInstruction(note)
@@ -327,5 +458,27 @@ class SnsRepository(private val db: AppDatabase) {
     }
     suspend fun deleteTask(id: Int) {
         cabinetDao.deleteTaskById(id)
+    }
+
+    // 4.8 Address Operations
+    suspend fun addAddress(addr: AddressItem) {
+        cabinetDao.insertAddress(addr)
+    }
+    suspend fun updateAddress(addr: AddressItem) {
+        cabinetDao.updateAddress(addr)
+    }
+    suspend fun deleteAddress(id: Int) {
+        cabinetDao.deleteAddressById(id)
+    }
+
+    // 4.9 Password Operations
+    suspend fun addPassword(passwd: PasswordItem) {
+        cabinetDao.insertPassword(passwd)
+    }
+    suspend fun updatePassword(passwd: PasswordItem) {
+        cabinetDao.updatePassword(passwd)
+    }
+    suspend fun deletePassword(id: Int) {
+        cabinetDao.deletePasswordById(id)
     }
 }

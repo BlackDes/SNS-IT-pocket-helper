@@ -1,5 +1,5 @@
 {
-  "name": "SNS",
+  "name": "SNS IT pocket helper",
   "description": "SNS Group of Companies pocket assistant for IT specialists.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
