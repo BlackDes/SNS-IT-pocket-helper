@@ -123,6 +123,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             prepopulateIfEmpty()
         }
+
+        viewModelScope.launch {
+            tasks.collect { list ->
+                checkTasksForNotifications(list)
+            }
+        }
     }
 
     // Helper to parse dd.MM.yyyy date to Long for sorting
@@ -465,10 +471,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Instruction Mutations
-    fun addInstruction(title: String, content: String, imageUris: String = "", localPhotosJson: String = "") {
+    fun addInstruction(title: String, content: String, imageUris: String = "", localPhotosJson: String = "", allowCopy: Boolean = false) {
         viewModelScope.launch {
             repository.addInstruction(
-                InstructionNote(title = title, content = content, imageUris = imageUris, localPhotosJson = localPhotosJson)
+                InstructionNote(title = title, content = content, imageUris = imageUris, localPhotosJson = localPhotosJson, allowCopy = allowCopy)
             )
             showToast("Заметка '$title' успешно создана")
         }
@@ -940,6 +946,65 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 onResult(false, "Ошибка при импорте: ${e.message}")
             }
         }
+    }
+
+    private val notifiedTaskIds = mutableSetOf<Int>()
+
+    private fun checkTasksForNotifications(taskList: List<TaskItem>) {
+        val todayDay = System.currentTimeMillis() / 86400000L
+        taskList.forEach { task ->
+            if (!task.isCompleted) {
+                val createdDay = task.createdDateMillis / 86400000L
+                val deadlineDay = createdDay + task.daysNeeded
+                val daysRemaining = deadlineDay - todayDay
+                if (daysRemaining == 1L) {
+                    if (!notifiedTaskIds.contains(task.id)) {
+                        notifiedTaskIds.add(task.id)
+                        sendLocalNotification(task)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun sendLocalNotification(task: TaskItem) {
+        val context = getApplication<Application>().applicationContext
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        
+        // Create channel for Android O+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channelId = "task_deadlines"
+            val channelName = "Дедлайны задач"
+            val channel = android.app.NotificationChannel(
+                channelId,
+                channelName,
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Уведомления за день до окончания задачи"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        // Create an intent to open the app on click
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = android.app.PendingIntent.getActivity(
+            context,
+            task.id,
+            intent ?: android.content.Intent(),
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or if (android.os.Build.VERSION.SDK_INT >= 23) android.app.PendingIntent.FLAG_IMMUTABLE else 0
+        )
+
+        val builder = androidx.core.app.NotificationCompat.Builder(context, "task_deadlines")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Дедлайн ИТ-задачи!")
+            .setContentText("Остался всего 1 день до закрытия задачи: \"${task.title}\"")
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+
+        notificationManager.notify(task.id, builder.build())
     }
 
 }

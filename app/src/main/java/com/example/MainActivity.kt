@@ -106,6 +106,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    "android.permission.POST_NOTIFICATIONS"
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf("android.permission.POST_NOTIFICATIONS"),
+                    101
+                )
+            }
+        }
+
         setContent {
             MyApplicationTheme {
                 MainAppContainer()
@@ -388,11 +403,10 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             HomeButton(
                 title = "База Картриджей",
-                subtitle = "Общий учет, поступление, история списания БУ",
                 icon = Icons.Default.Print,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.CARTRIDGES) },
@@ -401,7 +415,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
             
             HomeButton(
                 title = "Реестр Оборудования",
-                subtitle = "Учет техники, инвентарные номера, экспорт списков",
                 icon = Icons.Default.Computer,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.EQUIPMENT) },
@@ -410,7 +423,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
             
             HomeButton(
                 title = "Контакты Сотрудников",
-                subtitle = "Список коллег, быстрый вызов, копирование телефонов",
                 icon = Icons.Default.People,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.EMPLOYEES) },
@@ -419,7 +431,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
             
             HomeButton(
                 title = "Инструкции и Скетчи",
-                subtitle = "Блокнот инженера, графические заметки и ошибки",
                 icon = Icons.Default.Book,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.INSTRUCTIONS) },
@@ -428,7 +439,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
 
             HomeButton(
                 title = "Задачи и Инциденты",
-                subtitle = "Планирование работ, дедлайны, учет решений",
                 icon = Icons.Default.CheckCircle,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.TASKS) },
@@ -437,7 +447,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
 
             HomeButton(
                 title = "Реестр Адресов",
-                subtitle = "Точки, филиалы, быстрое открытие карт",
                 icon = Icons.Default.LocationOn,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.ADDRESSES) },
@@ -446,7 +455,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
 
             HomeButton(
                 title = "База Паролей",
-                subtitle = "Конфиденциальный просмотр, копирование логина и пароля",
                 icon = Icons.Default.Lock,
                 color = SnsGreen,
                 onClick = { onNavigate(ScreenState.PASSWORDS) },
@@ -455,7 +463,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
 
             HomeButton(
                 title = "О приложении",
-                subtitle = "Контакты техподдержки, служба ИТ, разработчик",
                 icon = Icons.Default.Info,
                 color = Color(0xFF2196F3),
                 onClick = { onNavigate(ScreenState.INFO) },
@@ -475,7 +482,6 @@ fun HomeScreen(onNavigate: (ScreenState) -> Unit) {
 @Composable
 fun HomeButton(
     title: String,
-    subtitle: String,
     icon: ImageVector,
     color: Color,
     onClick: () -> Unit,
@@ -484,22 +490,22 @@ fun HomeButton(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .height(72.dp)
             .clickable(onClick = onClick)
             .testTag(testTag),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = SnsCardBg),
         border = BorderStroke(1.dp, SnsBorder)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(44.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(color.copy(alpha = 0.15f))
                     .border(1.dp, color, RoundedCornerShape(8.dp)),
@@ -509,30 +515,19 @@ fun HomeButton(
                     imageVector = icon,
                     contentDescription = null,
                     tint = color,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
             
             Spacer(modifier = Modifier.width(16.dp))
             
-            Column(
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = SnsSilverText,
                 modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = SnsSilverText
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = SnsSecondaryText,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 2
-                )
-            }
+            )
             
             Icon(
                 imageVector = Icons.Default.ArrowForward,
@@ -628,7 +623,7 @@ fun CartridgesPagerScreen(
     requestConfirm: (String, String, () -> Unit) -> Unit,
     onBack: () -> Unit
 ) {
-    val subfolders = listOf("Последняя выдача", "Общий подсчёт", "Новые картриджи", "БУ картриджи", "История выдачи", "Управление")
+    val subfolders = listOf("Выдача и остаток", "Новые картриджи", "БУ картриджи", "Управление")
     val pagerState = rememberPagerState(pageCount = { subfolders.size })
     val coroutineScope = rememberCoroutineScope()
     
@@ -656,22 +651,22 @@ fun CartridgesPagerScreen(
                 .weight(1f)
         ) { page ->
             when (page) {
-                0 -> LatestIssuanceTab(issuances, employeesList, usedCartridges)
-                1 -> GeneralCountTab(newCartridges, issuances, usedCartridges, cartridgeTypes)
-                2 -> NewCartridgesFormTab(viewModel, newCartridges, employeesList, cartridgeTypes, requestConfirm)
-                3 -> UsedCartridgesTab(viewModel, usedCartridges, employeesList, requestConfirm)
-                4 -> IssuanceHistoryTab(viewModel, issuances)
-                5 -> ManageCartridgesTab(viewModel, newCartridges, cartridgeTypes, requestConfirm)
+                0 -> CombinedIssuanceAndStockTab(newCartridges, issuances, usedCartridges, employeesList, cartridgeTypes)
+                1 -> NewCartridgesFormTab(viewModel, newCartridges, employeesList, cartridgeTypes, requestConfirm)
+                2 -> UsedCartridgesTab(viewModel, usedCartridges, employeesList, requestConfirm)
+                3 -> ManageCartridgesTab(viewModel, newCartridges, cartridgeTypes, requestConfirm)
             }
         }
     }
 }
 
 @Composable
-fun LatestIssuanceTab(
+fun CombinedIssuanceAndStockTab(
+    newCartridges: List<NewCartridge>,
     issuances: List<CartridgeIssuance>,
+    usedCartridges: List<UsedCartridge>,
     employees: List<com.example.data.Employee>,
-    usedCartridges: List<com.example.data.UsedCartridge>
+    cartridgeTypes: List<com.example.data.CartridgeType>
 ) {
     val employeeToShortPos = remember(employees) {
         employees.associate { it.fullName to getShortPosition(it.position) }
@@ -679,8 +674,6 @@ fun LatestIssuanceTab(
     
     val tableRows = remember(employees, issuances) {
         val list = mutableListOf<String>()
-        
-        // Find routes from current employees
         val routes = mutableSetOf<String>()
         employees.forEach { emp ->
             val shortPos = getShortPosition(emp.position)
@@ -692,22 +685,38 @@ fun LatestIssuanceTab(
                 }
             }
         }
-        
-        // Let's also keep routes from historical issuances ONLY if they match existing employees 
-        // who might have historical registrations or simply always base it on active employees.
-        // We will sorted-ly add all employee route numbers.
         routes.toList().sorted().forEach { route ->
             list.add("ТП $route")
         }
         list
     }
-    
+
+    val remainingStock = remember(newCartridges, issuances, cartridgeTypes) {
+        val stockMap = mutableMapOf<String, Int>()
+        cartridgeTypes.forEach { type ->
+            stockMap[type.name] = 0
+        }
+        newCartridges.forEach {
+            stockMap[it.name] = (stockMap[it.name] ?: 0) + it.quantityAdded
+        }
+        issuances.filter { !it.isUsed }.forEach {
+            stockMap[it.cartridgeName] = (stockMap[it.cartridgeName] ?: 0) - it.quantity
+        }
+        stockMap.filter { it.key.isNotBlank() }
+    }
+
+    val usedRepair = usedCartridges.count { it.status == "Ремонт" }
+    val usedOk = usedCartridges.count { it.status == "Исправен" }
+    val usedIssued = usedCartridges.count { it.status == "Выдан" }
+    val usedDead = usedCartridges.count { it.status == "Умер" }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Section 1: Последняя выдача Table
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -725,7 +734,6 @@ fun LatestIssuanceTab(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     
-                    // Headers Row
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -752,7 +760,6 @@ fun LatestIssuanceTab(
                         }
                     } else {
                         tableRows.forEach { rowLabel ->
-                            // Filter issuances belonging to respective recipient roles/labels
                             val posIssuances = issuances.filter { 
                                 val shortP = getShortPositionByRecipient(it.issueTo, employeeToShortPos)
                                 val cleanShort = if (shortP.contains("ТП")) "ТП" else shortP
@@ -760,21 +767,17 @@ fun LatestIssuanceTab(
                                 if (rowLabel == "СВ") {
                                     cleanShort == "СВ" || it.issueTo.contains("[СВ]")
                                 } else if (rowLabel.startsWith("ТП V")) {
-                                    val routeCode = rowLabel.substringAfter("ТП ").trim() // e.g., "V101"
+                                    val routeCode = rowLabel.substringAfter("ТП ").trim()
                                     it.issueTo.contains(routeCode)
                                 } else {
-                                    // General fallback row label is "ТП"
                                     cleanShort == "ТП" || cleanShort == "ЛТП" || cleanShort == "СТП" || cleanShort == "УДФ ТП" ||
                                     it.issueTo.contains("[ТП]") || it.issueTo.contains("[ЛТП]") || it.issueTo.contains("[СТП]") || it.issueTo.contains("[УДФ ТП]")
                                 }
                             }
                             
-                            // Latest New Cartridge Issuance
                             val latestNew = posIssuances.filter { !it.isUsed }.maxByOrNull { it.id }
-                            // Latest BU Cartridge Issuance
                             val latestUsed = posIssuances.filter { it.isUsed }.maxByOrNull { it.id }
 
-                            // Check if BU cartridge is written off (status == "Умер")
                             val isWrittenOff = if (latestUsed != null) {
                                 val inv = latestUsed.cartridgeName.substringAfter("Инв: ", "").substringBefore(")", "")
                                 if (inv.isNotBlank()) {
@@ -827,46 +830,10 @@ fun LatestIssuanceTab(
                 }
             }
         }
-    }
-}
 
-@Composable
-fun GeneralCountTab(
-    newCartridges: List<NewCartridge>,
-    issuances: List<CartridgeIssuance>,
-    usedCartridges: List<UsedCartridge>,
-    cartridgeTypes: List<com.example.data.CartridgeType>
-) {
-    // Reactive Stock Calculation
-    val remainingStock = remember(newCartridges, issuances, cartridgeTypes) {
-        val stockMap = mutableMapOf<String, Int>()
-        // Initialize all registered kinds
-        cartridgeTypes.forEach { type ->
-            stockMap[type.name] = 0
-        }
-        // Add additions
-        newCartridges.forEach {
-            stockMap[it.name] = (stockMap[it.name] ?: 0) + it.quantityAdded
-        }
-        // Subtract issuances
-        issuances.filter { !it.isUsed }.forEach {
-            stockMap[it.cartridgeName] = (stockMap[it.cartridgeName] ?: 0) - it.quantity
-        }
-        stockMap.filter { it.key.isNotBlank() }
-    }
-
-    val usedRepair = usedCartridges.count { it.status == "Ремонт" }
-    val usedOk = usedCartridges.count { it.status == "Исправен" }
-    val usedIssued = usedCartridges.count { it.status == "Выдан" }
-    val usedDead = usedCartridges.count { it.status == "Умер" }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+        // Section 2: Остаток (Stock) New Cartridges list heading
         item {
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "ОСТАТОК НОВЫХ КАРТРИДЖЕЙ",
                 fontWeight = FontWeight.Bold,
@@ -881,7 +848,8 @@ fun GeneralCountTab(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = SnsCardBg)
+                    colors = CardDefaults.cardColors(containerColor = SnsCardBg),
+                    border = BorderStroke(1.dp, SnsBorder)
                 ) {
                     Text(
                         text = "Новые картриджи отсутствуют на складе",
@@ -938,9 +906,9 @@ fun GeneralCountTab(
             }
         }
 
-        // BU Cartridge summary counts
+        // Section 3: Состояние БУ Картриджей heading
         item {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "СОСТОЯНИЕ БУ КАРТРИДЖЕЙ",
                 fontWeight = FontWeight.Bold,
@@ -955,28 +923,24 @@ fun GeneralCountTab(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Repair Card
                 StatusCounterCard(
                     title = "В ремонте",
                     count = usedRepair,
                     color = SnsOrange,
                     modifier = Modifier.weight(1f)
                 )
-                // Repaired Card
                 StatusCounterCard(
                     title = "Исправен",
                     count = usedOk,
                     color = Color(0xFF3B82F6),
                     modifier = Modifier.weight(1f)
                 )
-                // Issued Card
                 StatusCounterCard(
                     title = "Выдан БУ",
                     count = usedIssued,
                     color = SnsGreen,
                     modifier = Modifier.weight(1f)
                 )
-                // Dead Card
                 StatusCounterCard(
                     title = "Списание",
                     count = usedDead,
@@ -987,6 +951,10 @@ fun GeneralCountTab(
         }
     }
 }
+
+
+
+
 
 @Composable
 fun StatusCounterCard(title: String, count: Int, color: Color, modifier: Modifier = Modifier) {
@@ -1070,16 +1038,12 @@ fun NewCartridgesFormTab(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     // Selector OutlinedTextField for ADD name
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedTypeMenuAdd = true }
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = cartNameInput,
                             onValueChange = {},
                             enabled = false,
-                            label = { Text("Выберите вид картриджа") },
+                            label = { Text("Вид картриджа") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("new_cart_name"),
@@ -1094,6 +1058,14 @@ fun NewCartridgesFormTab(
                             trailingIcon = {
                                 Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Картриджи", tint = SnsSecondaryText)
                             }
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { expandedTypeMenuAdd = true }
                         )
 
                         androidx.compose.material3.DropdownMenu(
@@ -1141,7 +1113,7 @@ fun NewCartridgesFormTab(
                     OutlinedTextField(
                         value = cartDateInput,
                         onValueChange = { cartDateInput = it },
-                        label = { Text("Дата поступления вручную (ДД.ММ.ГГГГ)") },
+                        label = { Text("Дата поступления") },
                         placeholder = { Text("Пусто: сегодня (${viewModel.getTodayString()})") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
@@ -1207,16 +1179,12 @@ fun NewCartridgesFormTab(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     // Selector OutlinedTextField for ISSUE name
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedTypeMenuIssue = true }
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = issueSelectedName,
                             onValueChange = {},
                             enabled = false,
-                            label = { Text("Выберите модель картриджа") },
+                            label = { Text("Модель картриджа") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("issue_cart_name"),
@@ -1231,6 +1199,14 @@ fun NewCartridgesFormTab(
                             trailingIcon = {
                                 Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Модели", tint = SnsSecondaryText)
                             }
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { expandedTypeMenuIssue = true }
                         )
 
                         androidx.compose.material3.DropdownMenu(
@@ -1280,7 +1256,7 @@ fun NewCartridgesFormTab(
                     EmployeeAutocompleteTextField(
                         value = issueToEmployee,
                         onValueChange = { issueToEmployee = it },
-                        label = "Кому выдать (ФИО сотрудника)",
+                        label = "Кому выдать",
                         employees = employees,
                         restrictToCartridges = true
                     )
@@ -1299,7 +1275,7 @@ fun NewCartridgesFormTab(
                     OutlinedTextField(
                         value = issueDateInput,
                         onValueChange = { issueDateInput = it },
-                        label = { Text("Дата выдачи вручную (ДД.ММ.ГГГГ)") },
+                        label = { Text("Дата выдачи") },
                         placeholder = { Text("Пусто: сегодня (${viewModel.getTodayString()})") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
@@ -1614,7 +1590,7 @@ fun UsedCartridgesTab(
                     OutlinedTextField(
                         value = usedDateInput,
                         onValueChange = { usedDateInput = it },
-                        label = { Text("Дата регистрации вручную (ДД.ММ.ГГГГ)") },
+                        label = { Text("Дата регистрации") },
                         placeholder = { Text("Пусто: сегодня (${viewModel.getTodayString()})") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
@@ -1836,7 +1812,7 @@ fun UsedCartridgesTab(
                     EmployeeAutocompleteTextField(
                         value = issueRecipientBU,
                         onValueChange = { issueRecipientBU = it },
-                        label = "ФИО Специалиста/Служащего",
+                        label = "ФИО Специалиста",
                         employees = employees,
                         restrictToCartridges = true
                     )
@@ -1879,275 +1855,7 @@ fun UsedCartridgesTab(
     }
 }
 
-@Composable
-fun IssuanceHistoryTab(viewModel: MainViewModel, issuances: List<CartridgeIssuance>) {
-    var query by remember { mutableStateOf("") }
-    var editingIssuance by remember { mutableStateOf<CartridgeIssuance?>(null) }
-    
-    val filtered = remember(issuances, query) {
-        if (query.isBlank()) {
-            issuances
-        } else {
-            issuances.filter {
-                it.cartridgeName.contains(query, ignoreCase = true) ||
-                it.issueTo.contains(query, ignoreCase = true)
-            }
-        }
-    }
 
-    if (editingIssuance != null) {
-        val issueItem = editingIssuance!!
-        val context = LocalContext.current
-        var editCartridgeName by remember { mutableStateOf(issueItem.cartridgeName) }
-        var editIssueTo by remember { mutableStateOf(issueItem.issueTo) }
-        var editQuantityStr by remember { mutableStateOf(issueItem.quantity.toString()) }
-        var editIsUsed by remember { mutableStateOf(issueItem.isUsed) }
-        var editDate by remember { mutableStateOf(issueItem.issueDate) }
-        
-        AlertDialog(
-            onDismissRequest = { editingIssuance = null },
-            title = { Text("Редактировать выдачу", color = SnsSilverText, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = editCartridgeName,
-                        onValueChange = { editCartridgeName = it },
-                        label = { Text("Модель картриджа") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen, focusedLabelColor = SnsGreen, cursorColor = SnsGreen)
-                    )
-                    
-                    OutlinedTextField(
-                        value = editIssueTo,
-                        onValueChange = { editIssueTo = it },
-                        label = { Text("Кому выдано (ФИО)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen, focusedLabelColor = SnsGreen, cursorColor = SnsGreen)
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(), 
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = editQuantityStr,
-                            onValueChange = { editQuantityStr = it },
-                            label = { Text("Кол-во") },
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen, focusedLabelColor = SnsGreen, cursorColor = SnsGreen)
-                        )
-                        OutlinedTextField(
-                            value = editDate,
-                            onValueChange = { editDate = it },
-                            label = { Text("Дата") },
-                            modifier = Modifier.weight(1.5f),
-                            trailingIcon = {
-                                IconButton(onClick = {
-                                    showDatePicker(context, System.currentTimeMillis(), null) { selectedMillis ->
-                                        editDate = formatMillisToDate(selectedMillis)
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.DateRange,
-                                        contentDescription = "Выбрать дату",
-                                        tint = SnsGreen
-                                    )
-                                }
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen, focusedLabelColor = SnsGreen, cursorColor = SnsGreen)
-                        )
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                    ) {
-                        Checkbox(
-                            checked = editIsUsed,
-                            onCheckedChange = { editIsUsed = it },
-                            colors = CheckboxDefaults.colors(checkedColor = SnsOrange)
-                        )
-                        Text("БУ картридж", color = SnsSilverText, fontSize = 14.sp)
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val qty = editQuantityStr.toIntOrNull() ?: 1
-                        val updated = issueItem.copy(
-                            cartridgeName = editCartridgeName,
-                            issueTo = editIssueTo,
-                            quantity = qty,
-                            isUsed = editIsUsed,
-                            issueDate = editDate
-                        )
-                        viewModel.updateCartridgeIssuance(updated)
-                        editingIssuance = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SnsGreen)
-                ) {
-                    Text("Сохранить", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingIssuance = null }) {
-                    Text("Отмена", color = SnsSilverText)
-                }
-            },
-            containerColor = SnsCardBg
-        )
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item {
-            Text(
-                text = "ИСТОРИЯ ВЫДАЧИ КАРТРИДЖЕЙ",
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                fontFamily = FontFamily.Monospace,
-                color = SnsSecondaryText
-            )
-        }
-
-        item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Поиск по выданным картриджам / ФИО") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("search_issuances"),
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
-            )
-        }
-        
-        if (filtered.isEmpty()) {
-            item {
-                Text(text = "Выдачи не найдены", color = SnsSecondaryText, modifier = Modifier.padding(16.dp))
-            }
-        } else {
-            items(filtered) { issue ->
-                val isExpired = viewModel.isOlderThan30Days(issue.issueDate)
-                
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isExpired) Color(0x35EF5350) else SnsCardBg
-                    ),
-                    border = BorderStroke(
-                        1.dp, 
-                        if (isExpired) SnsRedAccent.copy(alpha = 0.6f) else SnsBorder
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = issue.cartridgeName,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = if (isExpired) Color(0xFFFF8A80) else SnsSilverText
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(text = "Кому: ${issue.issueTo}", fontSize = 13.sp, color = SnsSilverText)
-                            }
-                            
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(if (issue.isUsed) SnsOrange.copy(alpha = 0.2f) else SnsGreen.copy(alpha = 0.2f))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = if (issue.isUsed) "БУ" else "НОВЫЙ",
-                                        color = if (issue.isUsed) SnsOrange else SnsGreen,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                IconButton(
-                                    onClick = { editingIssuance = issue },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Изменить",
-                                        tint = SnsGreen,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        }
-                        
-                        HorizontalDivider(color = SnsBorder.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 10.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Количество: ${issue.quantity} шт",
-                                fontSize = 12.sp,
-                                color = SnsSecondaryText
-                            )
-                            
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = null,
-                                    tint = SnsSecondaryText,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = issue.issueDate,
-                                    fontSize = 12.sp,
-                                    color = SnsSecondaryText,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-
-                        if (isExpired) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Color(0xFFEF5350),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = "Прошло более 30 дней с момента выдачи!",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFFEF5350),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 // ==========================================
@@ -2282,33 +1990,7 @@ fun EquipmentListTab(
             }
         }
 
-        // Action panel to Clear Filters when they are active
-        if (searchQuery.isNotEmpty() || filterAssignee != "Все лица") {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Button(
-                    onClick = {
-                        searchQuery = ""
-                        filterAssignee = "Все лица"
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Очистить",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Сбросить фильтры", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
+
 
         if (showFilters) {
             // Filters Card
@@ -2372,6 +2054,27 @@ fun EquipmentListTab(
                             )
                         }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Button(
+                    onClick = {
+                        searchQuery = ""
+                        filterAssignee = "Все лица"
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Очистить",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Сбросить фильтры", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2598,13 +2301,13 @@ fun AddEquipmentFormTab(
             EmployeeAutocompleteTextField(
                 value = assignee,
                 onValueChange = { assignee = it },
-                label = "Сотрудник, за кем закрепить",
+                label = "Сотрудник",
                 employees = employees,
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("eq_assignee"),
                 restrictToCartridges = false,
-                focusedBorderColor = SnsOrange
+                focusedBorderColor = SnsGreen
             )
         }
 
@@ -2612,7 +2315,7 @@ fun AddEquipmentFormTab(
             OutlinedTextField(
                 value = purchasesDateInput,
                 onValueChange = { purchasesDateInput = it },
-                label = { Text("Дата покупки вручную (ДД.ММ.ГГГГ)") },
+                label = { Text("Дата покупки") },
                 placeholder = { Text("Пусто: сегодня (${viewModel.getTodayString()})") },
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
@@ -2624,11 +2327,11 @@ fun AddEquipmentFormTab(
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Выбрать дату",
-                            tint = SnsOrange
+                            tint = SnsGreen
                         )
                     }
                 },
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsOrange)
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
             )
         }
 
@@ -2649,12 +2352,12 @@ fun AddEquipmentFormTab(
                         }
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = SnsOrange),
+                colors = ButtonDefaults.buttonColors(containerColor = SnsGreen),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("btn_save_equipment")
             ) {
-                Text("Закрепить и сохранить")
+                Text("Записать")
             }
         }
     }
@@ -2707,35 +2410,65 @@ fun EmployeesListTab(
     requestConfirm: (String, String, () -> Unit) -> Unit
 ) {
     val context = LocalContext.current
-    var searchInput by remember { mutableStateOf("") }
     var editingEmployee by remember { mutableStateOf<Employee?>(null) }
     var sortByPosition by remember { mutableStateOf(false) }
     var expandedEmployeeId by remember { mutableStateOf<Int?>(null) }
 
-    val filtered = remember(employees, searchInput) {
-        if (searchInput.isBlank()) employees
-        else employees.filter { it.fullName.contains(searchInput, ignoreCase = true) || it.position.contains(searchInput, ignoreCase = true) }
-    }
-
-    val sortedFiltered = remember(filtered, sortByPosition) {
+    val sortedFiltered = remember(employees, sortByPosition) {
         if (sortByPosition) {
-            filtered.sortedBy { it.position }
+            employees.sortedBy { it.position }
         } else {
-            filtered.sortedBy { it.fullName }
+            employees.sortedBy { it.fullName }
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = searchInput,
-            onValueChange = { searchInput = it },
-            label = { Text("Поиск сотрудника") },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
-        )
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "СПИСОК СОТРУДНИКОВ",
+                fontWeight = FontWeight.Bold,
+                color = SnsGreen,
+                fontSize = 14.sp
+            )
+            
+            Button(
+                onClick = {
+                    val file = generateEmployeesPdf(context, sortedFiltered)
+                    if (file != null) {
+                        printEmployeesPdf(context, file)
+                    } else {
+                        Toast.makeText(context, "Не удалось создать PDF документ", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = SnsGreen),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Печать",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Печать таблицы", 
+                        fontSize = 12.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = Color.White
+                    )
+                }
+            }
+        }
 
         // Sorting Toggle Chips
         Row(
@@ -3149,11 +2882,7 @@ fun EmployeesListTab(
                     )
 
                     // Dropdown Position selector field for Edit dialog
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedEditPosMenu = true }
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = editPos,
                             onValueChange = {},
@@ -3170,6 +2899,14 @@ fun EmployeesListTab(
                             trailingIcon = {
                                 Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Категории", tint = SnsSecondaryText)
                             }
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { expandedEditPosMenu = true }
                         )
 
                         androidx.compose.material3.DropdownMenu(
@@ -3283,21 +3020,17 @@ fun EmployeesListTab(
                     OutlinedTextField(
                         value = editSecondPhone,
                         onValueChange = { editSecondPhone = it },
-                        label = { Text("Второй телефон (необязательно)") },
+                        label = { Text("Второй телефон") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
                     )
                     
                     // Platform dropdown picker
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedSocialMenu = true }
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = editSocialLabel,
                             onValueChange = {},
-                            label = { Text("Выберите платформу") },
+                            label = { Text("Платформа") },
                             enabled = false,
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -3310,6 +3043,14 @@ fun EmployeesListTab(
                             trailingIcon = {
                                 Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Выбрать платформу", tint = SnsSecondaryText)
                             }
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { expandedSocialMenu = true }
                         )
 
                         androidx.compose.material3.DropdownMenu(
@@ -3678,7 +3419,9 @@ fun AddEmployeeFormTab(
     var name by remember { mutableStateOf("") }
     var pos by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var phone2 by remember { mutableStateOf("") }
+    var showAdditionalContact by remember { mutableStateOf(false) }
+    var additionalContactType by remember { mutableStateOf("") }
+    var additionalContactValue by remember { mutableStateOf("") }
 
     // Dropdown state for position options derived from DB
     val currentCustomPositions by viewModel.customPositions.collectAsStateWithLifecycle()
@@ -3696,14 +3439,6 @@ fun AddEmployeeFormTab(
     var isRemote by remember { mutableStateOf(false) }
     var isShift by remember { mutableStateOf(false) }
 
-    // Optional social details
-    var socialLabel by remember { mutableStateOf("") }
-    var socialLink by remember { mutableStateOf("") }
-    
-    var expandedSocialMenu by remember { mutableStateOf(false) }
-    var showCustomSocialLabelDialog by remember { mutableStateOf(false) }
-    var customSocialLabelInput by remember { mutableStateOf("") }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -3716,7 +3451,7 @@ fun AddEmployeeFormTab(
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("ФИО сотрудника (например: Петров Петр Петрович)") },
+            label = { Text("ФИО сотрудника") },
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("emp_name"),
@@ -3724,11 +3459,7 @@ fun AddEmployeeFormTab(
         )
 
         // Dropdown Position selector field
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expandedPosMenu = true }
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = pos,
                 onValueChange = {},
@@ -3747,6 +3478,14 @@ fun AddEmployeeFormTab(
                 trailingIcon = {
                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Категории", tint = SnsSecondaryText)
                 }
+            )
+
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(top = 8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { expandedPosMenu = true }
             )
 
             androidx.compose.material3.DropdownMenu(
@@ -3796,7 +3535,8 @@ fun AddEmployeeFormTab(
                     OutlinedTextField(
                         value = routeNumber,
                         onValueChange = { routeNumber = it },
-                        label = { Text("Номер маршрута (например: 15)") },
+                        label = { Text("Номер маршрута") },
+                        placeholder = { Text("например: 15") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
                     )
@@ -3852,136 +3592,193 @@ fun AddEmployeeFormTab(
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
-            label = { Text("Номер телефона (например, +79991234567)") },
+            label = { Text("Номер телефона") },
+            placeholder = { Text("+79991234567") },
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("emp_phone"),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
         )
 
-        OutlinedTextField(
-            value = phone2,
-            onValueChange = { phone2 = it },
-            label = { Text("Второй номер телефона (необязательно)") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("emp_phone_2"),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
-        )
-
-        // Social details card with platforms selector
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = SnsDarkBg),
-            border = BorderStroke(1.dp, SnsBorder)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "Дополнительная соцсеть или мессенджер",
-                    fontWeight = FontWeight.Bold,
-                    color = SnsGreen,
-                    fontSize = 12.sp
-                )
-
-                // Platform Dropdown
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expandedSocialMenu = true }
+        if (!showAdditionalContact) {
+            Button(
+                onClick = {
+                    showAdditionalContact = true
+                    additionalContactType = "Telegram"
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = SnsGreen.copy(alpha = 0.15f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    OutlinedTextField(
-                        value = socialLabel,
-                        onValueChange = {},
-                        label = { Text("Выберите платформу") },
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = SnsSilverText,
-                            disabledBorderColor = SnsBorder,
-                            disabledLabelColor = SnsSecondaryText,
-                            disabledTrailingIconColor = SnsSecondaryText,
-                            focusedBorderColor = SnsGreen
-                        ),
-                        trailingIcon = {
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Выбрать платформу", tint = SnsSecondaryText)
-                        }
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Дополнительный вид связи",
+                        tint = SnsGreen,
+                        modifier = Modifier.size(16.dp)
                     )
-
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = expandedSocialMenu,
-                        onDismissRequest = { expandedSocialMenu = false },
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .background(SnsCardBg)
-                    ) {
-                        listOf("Telegram", "WhatsApp", "Viber", "VK").forEach { platform ->
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(platform, color = SnsSilverText, fontSize = 14.sp) },
-                                onClick = {
-                                    socialLabel = platform
-                                    expandedSocialMenu = false
-                                }
-                            )
-                        }
-                        
-                        androidx.compose.material3.HorizontalDivider(color = SnsBorder)
-                        
-                        androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("[+] Добавить новое", color = SnsGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold) },
-                            onClick = {
-                                expandedSocialMenu = false
-                                showCustomSocialLabelDialog = true
-                            }
-                        )
-                    }
+                    Text(
+                        text = "Дополнительный вид связи",
+                        color = SnsGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
                 }
-
-                OutlinedTextField(
-                    value = socialLink,
-                    onValueChange = { socialLink = it },
-                    label = { Text("Никнейм или ссылка (например, @gymbober)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
-                )
             }
         }
 
-        if (showCustomSocialLabelDialog) {
-            AlertDialog(
-                onDismissRequest = { showCustomSocialLabelDialog = false },
-                title = { Text("ДОБАВИТЬ НОВОЕ", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = SnsGreen, fontFamily = FontFamily.Monospace) },
-                text = {
-                    OutlinedTextField(
-                        value = customSocialLabelInput,
-                        onValueChange = { customSocialLabelInput = it },
-                        label = { Text("Введите название платформы") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            if (customSocialLabelInput.isNotBlank()) {
-                                socialLabel = customSocialLabelInput.trim()
-                                customSocialLabelInput = ""
-                            }
-                            showCustomSocialLabelDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = SnsGreen)
+        if (showAdditionalContact) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = SnsDarkBg),
+                border = BorderStroke(1.dp, SnsBorder.copy(alpha = 0.8f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("OK")
+                        Text(
+                            text = "ДОПОЛНИТЕЛЬНЫЙ ВИД СВЯЗИ",
+                            fontWeight = FontWeight.Bold,
+                            color = SnsGreen,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        IconButton(
+                            onClick = {
+                                showAdditionalContact = false
+                                additionalContactType = ""
+                                additionalContactValue = ""
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Убрать",
+                                tint = SnsSecondaryText,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showCustomSocialLabelDialog = false }) {
-                        Text("Отмена", color = SnsSilverText)
+
+                    // Platform Dropdown Selection
+                    var expandedLabelMenu by remember { mutableStateOf(false) }
+                    var showCustomLabelDialog by remember { mutableStateOf(false) }
+                    var customLabelInput by remember { mutableStateOf("") }
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = additionalContactType,
+                            onValueChange = {},
+                            label = { Text("Наименование связи") },
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = SnsSilverText,
+                                disabledBorderColor = SnsBorder,
+                                disabledLabelColor = SnsSecondaryText,
+                                disabledTrailingIconColor = SnsSecondaryText,
+                                focusedBorderColor = SnsGreen
+                            ),
+                            trailingIcon = {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Выбрать", tint = SnsSecondaryText)
+                            }
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { expandedLabelMenu = true }
+                        )
+
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = expandedLabelMenu,
+                            onDismissRequest = { expandedLabelMenu = false },
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .background(SnsCardBg)
+                        ) {
+                            listOf("Telegram", "WhatsApp", "Viber", "VK", "Второй телефон").forEach { platform ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(platform, color = SnsSilverText, fontSize = 14.sp) },
+                                    onClick = {
+                                        additionalContactType = platform
+                                        expandedLabelMenu = false
+                                    }
+                                )
+                            }
+                            
+                            androidx.compose.material3.HorizontalDivider(color = SnsBorder)
+                            
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("[+] Другое наименование...", color = SnsGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold) },
+                                onClick = {
+                                    expandedLabelMenu = false
+                                    showCustomLabelDialog = true
+                                }
+                            )
+                        }
                     }
-                },
-                containerColor = SnsCardBg,
-                textContentColor = SnsSilverText
-            )
+
+                    if (showCustomLabelDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showCustomLabelDialog = false },
+                            title = { Text("СВОЕ НАИМЕНОВАНИЕ", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = SnsGreen, fontFamily = FontFamily.Monospace) },
+                            text = {
+                                OutlinedTextField(
+                                    value = customLabelInput,
+                                    onValueChange = { customLabelInput = it },
+                                    label = { Text("Введите наименование") },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        if (customLabelInput.isNotBlank()) {
+                                            additionalContactType = customLabelInput.trim()
+                                            customLabelInput = ""
+                                        }
+                                        showCustomLabelDialog = false
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = SnsGreen)
+                                ) {
+                                    Text("OK")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showCustomLabelDialog = false }) {
+                                    Text("Отмена", color = SnsSilverText)
+                                }
+                            },
+                            containerColor = SnsCardBg,
+                            textContentColor = SnsSilverText
+                        )
+                    }
+
+                    val isPhoneItem = additionalContactType == "Второй телефон" || additionalContactType.contains("телефон") || additionalContactType.contains("Phone")
+                    
+                    OutlinedTextField(
+                        value = additionalContactValue,
+                        onValueChange = { additionalContactValue = it },
+                        label = { Text(if (isPhoneItem) "Номер телефона" else "Ссылка или никнейм") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SnsGreen)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
@@ -4009,26 +3806,41 @@ fun AddEmployeeFormTab(
                         finalName = name
                     }
 
-                    // Directly add employee without confirmation dialog
+                    val finalPhone2 = if (showAdditionalContact && (additionalContactType == "Второй телефон" || additionalContactType.contains("телефон") || additionalContactType.contains("Phone"))) {
+                        additionalContactValue.trim()
+                    } else {
+                        ""
+                    }
+                    val finalSocialLabel = if (showAdditionalContact && !(additionalContactType == "Второй телефон" || additionalContactType.contains("телефон") || additionalContactType.contains("Phone"))) {
+                        additionalContactType.trim()
+                    } else {
+                        null
+                    }
+                    val finalSocialLink = if (showAdditionalContact && !(additionalContactType == "Второй телефон" || additionalContactType.contains("телефон") || additionalContactType.contains("Phone"))) {
+                        additionalContactValue.trim()
+                    } else {
+                        null
+                    }
+
                     viewModel.addEmployee(
                         finalName, 
                         finalPos, 
                         phone, 
-                        phone2,
-                        socialLabel.ifBlank { null }, 
-                        socialLink.ifBlank { null }
+                        finalPhone2,
+                        finalSocialLabel, 
+                        finalSocialLink
                     )
                     
                     name = ""
                     pos = ""
                     phone = ""
-                    phone2 = ""
                     routeNumber = ""
                     isSummer = false
                     isRemote = false
                     isShift = false
-                    socialLabel = ""
-                    socialLink = ""
+                    showAdditionalContact = false
+                    additionalContactType = ""
+                    additionalContactValue = ""
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = SnsGreen),
@@ -4177,6 +3989,25 @@ fun NotebookListTab(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                if (note.allowCopy) {
+                                    val context = LocalContext.current
+                                    IconButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            val clip = android.content.ClipData.newPlainText("Note Copy", "${note.title}\n\n${note.content}")
+                                            clipboard.setPrimaryClip(clip)
+                                            android.widget.Toast.makeText(context, "Имя и текст скопированы!", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Share,
+                                            contentDescription = "Копировать",
+                                            tint = SnsGreen,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
                                 IconButton(
                                     onClick = {
                                         editingNote = note
@@ -4596,14 +4427,55 @@ fun FullScreenNotePagerViewer(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "РЕЖИМ ПРОСМОТРА",
-                        fontSize = 10.sp,
-                        color = SnsRedAccent,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "РЕЖИМ ПРОСМОТРА",
+                            fontSize = 10.sp,
+                            color = SnsRedAccent,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 1.sp
+                        )
+                        
+                        if (note.allowCopy) {
+                            val context = LocalContext.current
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        val clip = android.content.ClipData.newPlainText("Note Copy", "${note.title}\n\n${note.content}")
+                                        clipboard.setPrimaryClip(clip)
+                                        android.widget.Toast.makeText(context, "Имя и текст скопированы!", android.widget.Toast.LENGTH_SHORT).show()
+                                    },
+                                color = SnsGreen.copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, SnsGreen)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = "Копировать текст",
+                                        tint = SnsGreen,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = "КОПИРОВАТЬ",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = SnsGreen,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+                            }
+                        }
+                    }
                     
                     IconButton(
                         onClick = onDismiss,
@@ -4922,6 +4794,7 @@ fun AddNoteTab(
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    var allowCopyToClipboard by remember { mutableStateOf(false) }
     
     // Staged list of photos to attach to the note
     val attachedPhotos = remember { mutableStateListOf<PhotoAttachment>() }
@@ -5091,6 +4964,42 @@ fun AddNoteTab(
             }
 
             item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SnsCardBg)
+                        .border(1.dp, SnsBorder, RoundedCornerShape(12.dp))
+                        .clickable { allowCopyToClipboard = !allowCopyToClipboard }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    androidx.compose.material3.Checkbox(
+                        checked = allowCopyToClipboard,
+                        onCheckedChange = { allowCopyToClipboard = it },
+                        colors = androidx.compose.material3.CheckboxDefaults.colors(
+                            checkedColor = SnsRedAccent,
+                            uncheckedColor = SnsSecondaryText
+                        )
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Кнопка быстрого копирования",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SnsSilverText
+                        )
+                        Text(
+                            text = "Добавить в запись кнопку копирования в буфер обмена",
+                            fontSize = 11.sp,
+                            color = SnsSecondaryText
+                        )
+                    }
+                }
+            }
+
+            item {
                 Button(
                     onClick = {
                         if (title.isNotBlank()) {
@@ -5098,9 +5007,10 @@ fun AddNoteTab(
                             val serializedPhotosText = attachedPhotos.joinToString("|") { "${it.filePath}^${it.comment}^${it.position}" }
                             
                             // Send empty drawing string, since sketch pad was removed!
-                            viewModel.addInstruction(title, content, "", serializedPhotosText)
+                            viewModel.addInstruction(title, content, "", serializedPhotosText, allowCopyToClipboard)
                             title = ""
                             content = ""
+                            allowCopyToClipboard = false
                             attachedPhotos.clear()
                         }
                     },
@@ -5230,6 +5140,198 @@ fun SafetyConfirmDialog(
         containerColor = SnsCardBg,
         textContentColor = SnsSilverText
     )
+}
+
+// Utility function to generate a professional PDF document for the employees registry
+fun generateEmployeesPdf(context: Context, items: List<Employee>): java.io.File? {
+    try {
+        val pdfDoc = android.graphics.pdf.PdfDocument()
+        
+        val itemHeight = 30
+        val itemsPerPage = 20
+        val pageCount = if (items.isEmpty()) 1 else (items.size + itemsPerPage - 1) / itemsPerPage
+        
+        val paintHeader = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 10f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        val paintCell = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 9f
+            isAntiAlias = true
+        }
+        val paintTitle = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 16f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        val paintSub = android.graphics.Paint().apply {
+            color = android.graphics.Color.DKGRAY
+            textSize = 10f
+            isAntiAlias = true
+        }
+        val paintFillHeader = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(230, 235, 240) // soft professional gray-blue
+            style = android.graphics.Paint.Style.FILL
+        }
+        val paintLine = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(180, 180, 180)
+            strokeWidth = 1f
+            style = android.graphics.Paint.Style.STROKE
+        }
+        val paintAccent = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(21, 128, 61) // SNS Green
+            strokeWidth = 2f
+            style = android.graphics.Paint.Style.STROKE
+        }
+        
+        for (pageIdx in 0 until pageCount) {
+            val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, pageIdx + 1).create()
+            val page = pdfDoc.startPage(pageInfo)
+            val canvas = page.canvas
+            
+            // Draw visual branding and headers
+            canvas.drawText("РЕЕСТР СОТРУДНИКОВ - SNS", 40f, 60f, paintTitle)
+            canvas.drawLine(40f, 75f, 555f, 75f, paintAccent)
+            
+            val dateStr = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+            canvas.drawText("Сформирован: $dateStr | Страница: ${pageIdx + 1} из $pageCount", 40f, 95f, paintSub)
+            
+            fun drawCellText(text: String, startX: Float, endX: Float, y: Float, isHeader: Boolean = false) {
+                val padding = 5f
+                val maxWidth = endX - startX - (padding * 2)
+                val paintToUse = if (isHeader) paintHeader else paintCell
+                val count = paintToUse.breakText(text, true, maxWidth, null)
+                val drawStr = if (count < text.length) {
+                    text.substring(0, maxOf(0, count - 3)) + "..."
+                } else {
+                    text
+                }
+                canvas.drawText(drawStr, startX + padding, y, paintToUse)
+            }
+            
+            val startIdx = pageIdx * itemsPerPage
+            val endIdx = minOf(startIdx + itemsPerPage, items.size)
+            val numRows = endIdx - startIdx
+            val tableBottom = 150f + (numRows * 30f)
+            
+            // Draw header background
+            canvas.drawRect(30f, 120f, 565f, 150f, paintFillHeader)
+            
+            // Draw Table Header Texts
+            drawCellText("Должность", 30f, 200f, 138f, isHeader = true)
+            drawCellText("ФИО", 200f, 410f, 138f, isHeader = true)
+            drawCellText("Номер телефона", 410f, 565f, 138f, isHeader = true)
+            
+            if (items.isEmpty()) {
+                canvas.drawText("Нет зарегистрированных сотрудников", 40f, 180f, paintCell)
+            } else {
+                for (i in startIdx until endIdx) {
+                    val item = items[i]
+                    val rowTop = 150f + (i - startIdx) * 30f
+                    val textY = rowTop + 18f
+                    
+                    drawCellText(item.position, 30f, 200f, textY)
+                    drawCellText(item.fullName, 200f, 410f, textY)
+                    drawCellText(item.phoneNumber, 410f, 565f, textY)
+                }
+            }
+            
+            // Draw Table Grid Borders
+            // Outer rectangle
+            canvas.drawRect(30f, 120f, 565f, tableBottom, paintLine)
+            
+            // Header bottom border
+            canvas.drawLine(30f, 150f, 565f, 150f, paintLine)
+            
+            // Data row bottom borders
+            for (r in 1..numRows) {
+                val lineY = 150f + r * 30f
+                canvas.drawLine(30f, lineY, 565f, lineY, paintLine)
+            }
+            
+            // Vertical column borders
+            val columnsX = listOf(200f, 410f)
+            columnsX.forEach { colX ->
+                canvas.drawLine(colX, 120f, colX, tableBottom, paintLine)
+            }
+            
+            pdfDoc.finishPage(page)
+        }
+        
+        val pdfFile = java.io.File(context.cacheDir, "employees_registry.pdf")
+        if (pdfFile.exists()) {
+            pdfFile.delete()
+        }
+        val out = java.io.FileOutputStream(pdfFile)
+        pdfDoc.writeTo(out)
+        out.close()
+        pdfDoc.close()
+        return pdfFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return null
+    }
+}
+
+fun printEmployeesPdf(context: Context, pdfFile: java.io.File) {
+    try {
+        val printManager = context.getSystemService(Context.PRINT_SERVICE) as android.print.PrintManager
+        val jobName = "${context.getString(R.string.app_name)} - Реестр сотрудников"
+        
+        val printAdapter = object : android.print.PrintDocumentAdapter() {
+            override fun onLayout(
+                oldAttributes: android.print.PrintAttributes?,
+                newAttributes: android.print.PrintAttributes,
+                cancellationSignal: android.os.CancellationSignal?,
+                callback: LayoutResultCallback,
+                extras: android.os.Bundle?
+            ) {
+                if (cancellationSignal?.isCanceled == true) {
+                    callback.onLayoutCancelled()
+                    return
+                }
+                
+                val builder = android.print.PrintDocumentInfo.Builder("employees_registry.pdf")
+                    .setContentType(android.print.PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                    .setPageCount(android.print.PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+                
+                callback.onLayoutFinished(builder.build(), true)
+            }
+
+            override fun onWrite(
+                pages: Array<out android.print.PageRange>?,
+                destination: android.os.ParcelFileDescriptor,
+                cancellationSignal: android.os.CancellationSignal?,
+                callback: WriteResultCallback
+            ) {
+                var input: java.io.FileInputStream? = null
+                var output: java.io.FileOutputStream? = null
+                try {
+                    input = java.io.FileInputStream(pdfFile)
+                    output = java.io.FileOutputStream(destination.fileDescriptor)
+                    val buf = ByteArray(1024)
+                    var bytesRead: Int
+                    while (input.read(buf).also { bytesRead = it } > 0) {
+                        output.write(buf, 0, bytesRead)
+                    }
+                    callback.onWriteFinished(arrayOf(android.print.PageRange.ALL_PAGES))
+                } catch (e: Exception) {
+                    callback.onWriteFailed(e.toString())
+                } finally {
+                    input?.close()
+                    output?.close()
+                }
+            }
+        }
+        
+        printManager.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
+    } catch (e: Exception) {
+        Toast.makeText(context, "Ошибка печати: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+    }
 }
 
 // Utility function to generate a professional PDF document for the equipment registry
@@ -5706,13 +5808,13 @@ fun AboutAppScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .background(SnsRedAccent.copy(alpha = 0.15f), RoundedCornerShape(20.dp)),
+                        .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(20.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = SnsRedAccent,
+                        tint = Color(0xFF2196F3),
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -6777,8 +6879,7 @@ fun EmployeeAutocompleteTextField(
                 .fillMaxWidth()
                 .onFocusChanged { focusState ->
                     expanded = focusState.isFocused
-                }
-                .clickable { expanded = true },
+                },
             trailingIcon = {
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(

@@ -94,7 +94,8 @@ data class InstructionNote(
     val title: String,
     val content: String,
     val imageUris: String = "", // String containing comma-separated URLs or drawing Base64
-    val localPhotosJson: String = "" // String storing serialized [path^comment|path^comment]
+    val localPhotosJson: String = "", // String storing serialized [path^comment|path^comment]
+    val allowCopy: Boolean = false
 )
 
 // Tasks Registry
@@ -307,7 +308,7 @@ interface CabinetDao {
         PasswordItem::class,
         CustomPosition::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
