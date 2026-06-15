@@ -18,6 +18,7 @@ import com.example.data.TaskItem
 import com.example.data.UsedCartridge
 import com.example.data.AddressItem
 import com.example.data.PasswordItem
+import com.example.data.BoardItem
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +54,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val equipmentItems: StateFlow<List<EquipmentItem>>
     val employees: StateFlow<List<Employee>>
     val customPositions: StateFlow<List<CustomPosition>>
+    val boards: StateFlow<List<BoardItem>>
     val instructions: StateFlow<List<InstructionNote>>
     val tasks: StateFlow<List<TaskItem>>
     val addresses: StateFlow<List<AddressItem>>
@@ -89,6 +91,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
         )
         customPositions = repository.customPositions.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
+        )
+        boards = repository.boards.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
         )
         instructions = repository.instructions.stateIn(
@@ -309,7 +314,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     issueDate = if (!customDate.isNullOrBlank()) customDate else getTodayString()
                 )
             )
-            showToast("Выдан новый картридж: $name сотруднику $toPerson")
+            showToast("Выдан новый картридж: $name борту $toPerson")
         }
     }
 
@@ -356,7 +361,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         issueDate = getTodayString()
                     )
                 )
-                showToast("Выдан БУ картридж ${cartridge.inventoryNumber} сотруднику $issueTo")
+                showToast("Выдан БУ картридж ${cartridge.inventoryNumber} борту $issueTo")
             } else {
                 showToast("Статус БУ картриджа ${cartridge.inventoryNumber} изменен на: $newStatus")
             }
@@ -402,10 +407,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Employee Mutations
-    fun addEmployee(name: String, position: String, phone: String, secondPhone: String = "", socialLabel: String? = null, socialLink: String? = null) {
+    fun addEmployee(
+        name: String, 
+        position: String, 
+        phone: String, 
+        secondPhone: String = "", 
+        socialLabel: String? = null, 
+        socialLink: String? = null,
+        boardNumber: String = "",
+        isStpInactive: Boolean = false
+    ) {
         viewModelScope.launch {
             repository.addEmployee(
-                Employee(fullName = name, position = position, phoneNumber = phone, secondPhoneNumber = secondPhone, socialMediaLabel = socialLabel, socialMediaLink = socialLink)
+                Employee(
+                    fullName = name, 
+                    position = position, 
+                    phoneNumber = phone, 
+                    secondPhoneNumber = secondPhone, 
+                    socialMediaLabel = socialLabel, 
+                    socialMediaLink = socialLink,
+                    boardNumber = boardNumber,
+                    isStpInactive = isStpInactive
+                )
             )
             showToast("Сотрудник $name сохранен в базу")
         }
@@ -418,9 +441,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun getShortPosition(position: String): String {
+        if (position.startsWith("[")) {
+            val index = position.indexOf("]")
+            if (index != -1) {
+                return position.substring(1, index)
+            }
+        }
+        return position.take(4).uppercase()
+    }
+
     fun updateCustomPosition(pos: CustomPosition) {
         viewModelScope.launch {
+            val oldPos = customPositions.value.find { it.id == pos.id }
+            val oldName = oldPos?.name ?: ""
+            
             repository.updateCustomPosition(pos)
+            
+            if (oldName.isNotEmpty() && oldName != pos.name) {
+                val oldShort = getShortPosition(oldName)
+                val newShort = getShortPosition(pos.name)
+                
+                val currentEmployees = employees.value
+                currentEmployees.forEach { employee ->
+                    if (employee.position == oldName) {
+                        var newFullName = employee.fullName
+                        if (oldShort.isNotEmpty() && newShort.isNotEmpty() && oldShort != newShort) {
+                            if (employee.fullName.startsWith("$oldShort V")) {
+                                newFullName = "$newShort V" + employee.fullName.substring(oldShort.length + 2)
+                            } else if (employee.fullName.startsWith("$oldShort ")) {
+                                newFullName = "$newShort " + employee.fullName.substring(oldShort.length + 1)
+                            } else if (employee.fullName == oldShort) {
+                                newFullName = newShort
+                            }
+                        }
+                        repository.updateEmployee(
+                            employee.copy(
+                                position = pos.name,
+                                fullName = newFullName
+                            )
+                        )
+                    }
+                }
+            }
             showToast("Должность изменена")
         }
     }
@@ -443,6 +506,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.deleteEmployee(employee.id)
             showToast("Сотрудник ${employee.fullName} удален из списка")
+        }
+    }
+
+    // Board Mutations
+    fun addBoard(boardNumber: String) {
+        viewModelScope.launch {
+            val trimmed = boardNumber.trim()
+            val formatted = if (trimmed.uppercase().startsWith("V")) trimmed.uppercase() else "V$trimmed"
+            repository.addBoard(BoardItem(boardNumber = formatted))
+            showToast("Добавлен борт: $formatted")
+        }
+    }
+
+    fun updateBoard(board: BoardItem) {
+        viewModelScope.launch {
+            repository.updateBoard(board)
+            showToast("Борт обновлен: ${board.boardNumber}")
+        }
+    }
+
+    fun deleteBoard(board: BoardItem) {
+        viewModelScope.launch {
+            repository.deleteBoard(board.id)
+            showToast("Борт ${board.boardNumber} удален")
         }
     }
 
@@ -1005,6 +1092,77 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .setContentIntent(pendingIntent)
 
         notificationManager.notify(task.id, builder.build())
+    }
+
+    fun shareSingleInstruction(context: Context, note: InstructionNote) {
+        viewModelScope.launch {
+            try {
+                val obj = org.json.JSONObject()
+                obj.put("type", "single_instruction")
+                obj.put("title", note.title)
+                obj.put("content", note.content)
+                obj.put("imageUris", note.imageUris)
+                obj.put("localPhotosJson", note.localPhotosJson)
+
+                val outputString = obj.toString(4)
+                val sanitizedTitle = note.title.replace(Regex("[^a-zA-Zа-яА-Я0-9_]"), "_")
+                val filename = "instruction_${sanitizedTitle}.json"
+                val cacheFile = java.io.File(context.cacheDir, filename)
+                cacheFile.writeText(outputString, Charsets.UTF_8)
+
+                val authority = "com.example.fileprovider"
+                val uri = androidx.core.content.FileProvider.getUriForFile(context, authority, cacheFile)
+
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Инструкция: ${note.title}")
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(android.content.Intent.createChooser(intent, "Поделиться инструкцией"))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showToast("Ошибка при экспорте инструкции: ${e.message}")
+            }
+        }
+    }
+
+    fun importSingleInstruction(context: Context, uri: Uri, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val contentResolver = context.contentResolver
+                val inputStream = contentResolver.openInputStream(uri)
+                val jsonText = inputStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+
+                if (jsonText.isNullOrEmpty()) {
+                    onComplete(false, "Файл пуст")
+                    return@launch
+                }
+
+                val obj = org.json.JSONObject(jsonText)
+                if (obj.optString("type") == "single_instruction" || obj.has("title")) {
+                    val title = obj.getString("title")
+                    val content = obj.getString("content")
+                    val imageUris = obj.optString("imageUris", "")
+                    val localPhotosJson = obj.optString("localPhotosJson", "")
+
+                    repository.addInstruction(
+                        InstructionNote(
+                            title = title,
+                            content = content,
+                            imageUris = imageUris,
+                            localPhotosJson = localPhotosJson
+                        )
+                    )
+                    onComplete(true, "Инструкция '$title' успешно импортирована")
+                } else {
+                    onComplete(false, "Файл не содержит корректную инструкцию")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onComplete(false, "Ошибка импорта: ${e.message}")
+            }
+        }
     }
 
 }

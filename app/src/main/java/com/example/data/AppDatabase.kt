@@ -76,7 +76,15 @@ data class Employee(
     val phoneNumber: String,
     val secondPhoneNumber: String = "",
     val socialMediaLabel: String? = null,
-    val socialMediaLink: String? = null
+    val socialMediaLink: String? = null,
+    val boardNumber: String = "",
+    val isStpInactive: Boolean = false
+)
+
+@Entity(tableName = "board_items")
+data class BoardItem(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val boardNumber: String
 )
 
 // Predefined Cartridge Types (with custom user addition support)
@@ -288,6 +296,19 @@ interface CabinetDao {
     @Query("DELETE FROM passwords WHERE id = :id")
     suspend fun deletePasswordById(id: Int)
 
+    // Boards
+    @Query("SELECT * FROM board_items ORDER BY boardNumber ASC")
+    fun getAllBoards(): Flow<List<BoardItem>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBoard(board: BoardItem)
+
+    @Update
+    suspend fun updateBoard(board: BoardItem)
+
+    @Query("DELETE FROM board_items WHERE id = :id")
+    suspend fun deleteBoardById(id: Int)
+
 }
 
 // ==========================
@@ -301,6 +322,7 @@ interface CabinetDao {
         UsedCartridge::class,
         EquipmentItem::class,
         Employee::class,
+        BoardItem::class,
         InstructionNote::class,
         TaskItem::class,
         CartridgeType::class,
@@ -308,7 +330,7 @@ interface CabinetDao {
         PasswordItem::class,
         CustomPosition::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -351,6 +373,7 @@ class SnsRepository(private val db: AppDatabase) {
     val equipmentItems: Flow<List<EquipmentItem>> = cabinetDao.getAllEquipment()
     val employees: Flow<List<Employee>> = cabinetDao.getAllEmployees()
     val customPositions: Flow<List<CustomPosition>> = cabinetDao.getAllCustomPositions()
+    val boards: Flow<List<BoardItem>> = cabinetDao.getAllBoards()
     val instructions: Flow<List<InstructionNote>> = cabinetDao.getAllInstructions()
     val tasks: Flow<List<TaskItem>> = cabinetDao.getAllTasks()
     val addresses: Flow<List<AddressItem>> = cabinetDao.getAllAddresses()
@@ -437,6 +460,17 @@ class SnsRepository(private val db: AppDatabase) {
     }
     suspend fun deleteCustomPosition(id: Int) {
         cabinetDao.deleteCustomPositionById(id)
+    }
+
+    // Boards Operations
+    suspend fun addBoard(board: BoardItem) {
+        cabinetDao.insertBoard(board)
+    }
+    suspend fun updateBoard(board: BoardItem) {
+        cabinetDao.updateBoard(board)
+    }
+    suspend fun deleteBoard(id: Int) {
+        cabinetDao.deleteBoardById(id)
     }
 
     // 4.6 Instruction Notes Operations
